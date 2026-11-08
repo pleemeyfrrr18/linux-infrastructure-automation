@@ -1,0 +1,21 @@
+- name: Require a controller supporting Ubuntu 26.04 target Python
+  ansible.builtin.assert:
+    that:
+      - ansible_version.full is version('2.20', '>=')
+    fail_msg: Activate the project venv and install requirements-control.txt (Ansible core 2.20+).
+- name: Validate supported hosts and inventory topology
+  ansible.builtin.assert:
+    that:
+      - groups.get('app_servers', []) | length == 1
+      - groups.get('monitoring_servers', []) | length == 1
+      - groups['app_servers'][0] != groups['monitoring_servers'][0]
+      - ansible_facts.distribution == 'Ubuntu'
+      - ansible_facts.distribution_version is match('^(24|26)\.04(\.[0-9]+)?$')
+      - ansible_facts.distribution_release in ['noble', 'resolute']
+      - ansible_facts.architecture in ['x86_64', 'aarch64']
+      - ansible_user is defined
+      - ansible_user != 'root'
+      - private_ip is defined
+      - private_ip is match('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')
+      - private_ip in ansible_facts.all_ipv4_addresses
+    fail_msg: Use Ubuntu 24.04/26.04 LTS, a non-root inventory user, and an IPv4 address assigned to each VM.

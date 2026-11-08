@@ -1,0 +1,83 @@
+- name: Apply pending service handlers
+  ansible.builtin.meta: flush_handlers
+- name: Verify host metrics
+  ansible.builtin.uri:
+    url: 'http://{{ private_ip }}:9100/metrics'
+    return_content: true
+  register: node_result
+  until:
+    - node_result.status | default(0) == 200
+    - "'node_cpu_seconds_total' in (node_result.content | default(''))"
+  retries: 12
+  delay: 5
+  changed_when: false
+- name: Verify application through private reverse proxy
+  ansible.builtin.uri:
+    url: 'http://{{ private_ip }}:8080/health'
+    return_content: true
+  register: health_result
+  until: health_result.status | default(0) == 200
+  retries: 12
+  delay: 5
+  changed_when: false
+  when: inventory_hostname in groups['app_servers']
+- name: Check health response
+  ansible.builtin.assert:
+    that: health_result.json.status == 'ok'
+  when: inventory_hostname in groups['app_servers']
+- name: Verify Grafana readiness
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/health
+  register: grafana_result
+  until:
+    - grafana_result.status | default(0) == 200
+    - grafana_result.json.database | default('') == 'ok'
+  retries: 24
+  delay: 5
+  changed_when: false
+  when: inventory_hostname in groups['monitoring_servers']
+- name: Verify all four expected Prometheus targets are up
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9090/api/v1/targets
+    return_content: true
+  register: targets_result
+  until:
+    - targets_result.status | default(0) == 200
+    - targets_result.json.data.activeTargets | length == 4
+    - targets_result.json.data.activeTargets | selectattr('health', 'ne', 'up') | list | length == 0
+  retries: 24
+  delay: 5
+  changed_when: false
+  when: inventory_hostname in groups['monitoring_servers']
+- name: Verify provisioned Grafana dashboard through its API
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/dashboards/uid/linux-infra
+    url_username: admin
+    url_password: '{{ grafana_admin_password }}'
+    force_basic_auth: true
+    return_content: true
+  register: dashboard_result
+  until:
+    - dashboard_result.status | default(0) == 200
+    - dashboard_result.json.dashboard.uid | default('') == 'linux-infra'
+  retries: 12
+  delay: 5
+  changed_when: false
+  no_log: true
+  when: inventory_hostname in groups['monitoring_servers']
+- name: Verify provisioned Grafana datasource through its API
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/datasources/uid/prometheus
+    url_username: admin
+    url_password: '{{ grafana_admin_password }}'
+    force_basic_auth: true
+    return_content: true
+  register: datasource_result
+  until:
+    - datasource_result.status | default(0) == 200
+    - datasource_result.json.url | default('') == 'http://127.0.0.1:9090'
+  retries: 12
+  delay: 5
+  changed_when: false
+  no_log: true
+  when: inventory_hostname in groups['monitoring_servers']

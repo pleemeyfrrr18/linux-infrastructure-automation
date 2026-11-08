@@ -1,0 +1,5 @@
+project_root: /opt/linux-infrastructure-automation
+# Use the existing inventory addresses unless private_ip is explicitly set there.
+private_ip: '{{ ansible_host }}'
+firewall_approved: false
+ssh_port: 22

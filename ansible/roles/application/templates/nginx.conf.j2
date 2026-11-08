@@ -1,0 +1,27 @@
+pid /tmp/nginx.pid;
+worker_processes auto;
+error_log /dev/stderr warn;
+events { worker_connections 256; }
+http {
+    access_log /dev/stdout;
+    server_tokens off;
+    client_body_temp_path /tmp/client_temp;
+    proxy_temp_path /tmp/proxy_temp;
+    fastcgi_temp_path /tmp/fastcgi_temp;
+    uwsgi_temp_path /tmp/uwsgi_temp;
+    scgi_temp_path /tmp/scgi_temp;
+    server {
+        listen {{ private_ip }}:8080;
+        location / {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_connect_timeout 3s;
+            proxy_read_timeout 10s;
+        }
+    }
+    server {
+        listen 127.0.0.1:8081;
+        location = /health { proxy_pass http://127.0.0.1:8000/health; }
+    }
+}

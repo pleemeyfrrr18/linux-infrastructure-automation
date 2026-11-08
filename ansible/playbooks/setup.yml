@@ -1,0 +1,5 @@
+- name: Configure Ubuntu hosts and deploy both stacks
+  hosts: app_servers:monitoring_servers
+  become: true
+  roles: [preflight, common, docker]
+- import_playbook: deploy.yml

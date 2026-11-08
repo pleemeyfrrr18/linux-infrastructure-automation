@@ -1,0 +1,12 @@
+- name: Inspect the dedicated installation-media source file
+  ansible.builtin.stat:
+    path: '{{ common_apt_sources_directory }}/cdrom.sources'
+  register: common_cdrom_stat
+
+- name: Comment installation-media stanzas without deleting their contents
+  ansible.builtin.replace:
+    path: '{{ common_apt_sources_directory }}/cdrom.sources'
+    regexp: '^(?![ \t]*#)(.+)$'
+    replace: '# \1'
+  register: common_cdrom_source
+  when: common_cdrom_stat.stat.exists

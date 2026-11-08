@@ -1,0 +1,5 @@
+# Never imported by setup.yml; run only after reviewing rules and source addresses.
+- name: Apply explicitly approved firewall policy
+  hosts: app_servers:monitoring_servers
+  become: true
+  roles: [preflight, firewall]

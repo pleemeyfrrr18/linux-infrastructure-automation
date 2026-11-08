@@ -1,0 +1,45 @@
+rule_files: [alerts.yml]
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      - series: 'up{job="application",instance="app01"}'
+        values: '1 0 0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 30s
+        alertname: TargetUnavailable
+        exp_alerts: []
+      - eval_time: 90s
+        alertname: TargetUnavailable
+        exp_alerts:
+          - exp_labels: {job: application, instance: app01, severity: critical}
+            exp_annotations: {summary: 'Target application/app01 is unavailable'}
+
+  - interval: 15s
+    input_series:
+      - series: 'node_cpu_seconds_total{instance="app01",cpu="0",mode="idle"}'
+        values: '0+0x48'
+      - series: 'node_memory_MemAvailable_bytes{instance="app01"}'
+        values: '10+0x48'
+      - series: 'node_memory_MemTotal_bytes{instance="app01"}'
+        values: '100+0x48'
+      - series: 'node_filesystem_avail_bytes{instance="app01",mountpoint="/",fstype="ext4"}'
+        values: '10+0x48'
+      - series: 'node_filesystem_size_bytes{instance="app01",mountpoint="/",fstype="ext4"}'
+        values: '100+0x48'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HighCPUUsage
+        exp_alerts:
+          - exp_labels: {instance: app01, severity: warning}
+            exp_annotations: {summary: 'CPU usage above 85% on app01'}
+      - eval_time: 10m
+        alertname: HighMemoryUsage
+        exp_alerts:
+          - exp_labels: {instance: app01, severity: warning}
+            exp_annotations: {summary: 'Memory usage above 85% on app01'}
+      - eval_time: 10m
+        alertname: LowDiskSpace
+        exp_alerts:
+          - exp_labels: {instance: app01, mountpoint: /, fstype: ext4, severity: warning}
+            exp_annotations: {summary: 'Root filesystem below 15% available on app01'}

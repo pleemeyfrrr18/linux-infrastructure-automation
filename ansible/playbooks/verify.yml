@@ -1,0 +1,4 @@
+- name: Verify both deployed hosts without privilege escalation
+  hosts: app_servers:monitoring_servers
+  become: false
+  roles: [verify]

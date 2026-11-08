@@ -1,0 +1,15 @@
+- name: Rebuild application
+  community.docker.docker_compose_v2:
+    project_src: '{{ project_root }}/docker'
+    files: [app.compose.yaml]
+    state: present
+    build: always
+    pull: missing
+    wait: true
+    wait_timeout: 120
+- name: Restart reverse proxy
+  community.docker.docker_compose_v2:
+    project_src: '{{ project_root }}/docker'
+    files: [app.compose.yaml]
+    services: [nginx]
+    state: restarted

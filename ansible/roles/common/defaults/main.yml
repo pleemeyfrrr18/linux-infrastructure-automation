@@ -1,0 +1,2 @@
+# Overridden only by the local fixture test; normal deployments use system APT.
+common_apt_sources_directory: /etc/apt/sources.list.d

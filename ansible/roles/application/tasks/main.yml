@@ -1,0 +1,37 @@
+- name: Create application deployment directories
+  ansible.builtin.file:
+    path: '{{ project_root }}/{{ item }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: [app, docker, docker/nginx]
+- name: Copy application build context
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/../../app/{{ item }}'
+    dest: '{{ project_root }}/app/{{ item }}'
+    mode: '0644'
+  loop: [server.py, Dockerfile, .dockerignore]
+  notify: Rebuild application
+- name: Copy application Compose project
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/../../docker/app.compose.yaml'
+    dest: '{{ project_root }}/docker/app.compose.yaml'
+    mode: '0644'
+- name: Render private reverse proxy configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: '{{ project_root }}/docker/nginx/nginx.conf'
+    mode: '0644'
+  notify: Restart reverse proxy
+- name: Apply source and proxy changes
+  ansible.builtin.meta: flush_handlers
+- name: Ensure application stack is running
+  community.docker.docker_compose_v2:
+    project_src: '{{ project_root }}/docker'
+    files: [app.compose.yaml]
+    state: present
+    build: policy
+    pull: missing
+    wait: true
+    wait_timeout: 120

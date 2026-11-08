@@ -1,0 +1,87 @@
+# Runs only filesystem fixtures under a newly created /tmp directory. No APT/sudo.
+- name: Test installation-media repair locally
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Allocate a private fixture directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: lia-apt-test-
+      register: fixture
+
+    - name: Exercise the real common-role tasks
+      vars:
+        common_apt_sources_directory: '{{ fixture.path }}'
+      block:
+        - name: Check an absent cdrom.sources file is tolerated
+          ansible.builtin.include_tasks: ../roles/common/tasks/apt_sources.yml
+
+        - name: Assert no file was created or changed
+          ansible.builtin.assert:
+            that:
+              - not common_cdrom_stat.stat.exists
+              - not common_cdrom_source.changed
+
+        - name: Create multi-stanza installation-media fixture
+          ansible.builtin.copy:
+            dest: '{{ fixture.path }}/cdrom.sources'
+            mode: '0600'
+            content: |
+              # Existing installer comment
+              Types: deb
+              URIs: cdrom:[Ubuntu Server]/
+              Suites: resolute
+              Components: main restricted
+
+              Types: deb
+              URIs: cdrom:[Additional installer media]/
+              Suites: resolute
+              Components: main
+              Enabled: yes
+
+        - name: Create an unrelated network repository fixture
+          ansible.builtin.copy:
+            dest: '{{ fixture.path }}/ubuntu.sources'
+            mode: '0600'
+            content: |
+              Types: deb
+              URIs: https://archive.ubuntu.com/ubuntu
+              Suites: resolute
+              Components: main
+
+        - name: Apply the repair
+          ansible.builtin.include_tasks: ../roles/common/tasks/apt_sources.yml
+
+        - name: Read disabled installation-media source
+          ansible.builtin.slurp:
+            src: '{{ fixture.path }}/cdrom.sources'
+          register: disabled_source
+
+        - name: Verify all stanzas are commented and their content retained
+          ansible.builtin.assert:
+            that:
+              - common_cdrom_source.changed
+              - "disabled_source.content | b64decode | regex_findall('(?m)^(?![ \\t]*#)[^\\s].*$') | length == 0"
+              - "'URIs: cdrom:[Ubuntu Server]/' in (disabled_source.content | b64decode)"
+              - "'URIs: cdrom:[Additional installer media]/' in (disabled_source.content | b64decode)"
+
+        - name: Apply the same repair a second time
+          ansible.builtin.include_tasks: ../roles/common/tasks/apt_sources.yml
+
+        - name: Read unrelated network source
+          ansible.builtin.slurp:
+            src: '{{ fixture.path }}/ubuntu.sources'
+          register: network_source
+
+        - name: Require idempotency and preservation of other repositories
+          ansible.builtin.assert:
+            that:
+              - not common_cdrom_source.changed
+              - "network_source.content | b64decode == 'Types: deb\nURIs: https://archive.ubuntu.com/ubuntu\nSuites: resolute\nComponents: main\n'"
+      always:
+        - name: Remove only the temporary fixture created by this test
+          ansible.builtin.file:
+            path: '{{ fixture.path }}'
+            state: absent

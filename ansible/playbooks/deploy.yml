@@ -1,0 +1,9 @@
+- name: Deploy application
+  hosts: app_servers
+  become: true
+  roles: [preflight, application]
+- name: Deploy monitoring
+  hosts: monitoring_servers
+  become: true
+  roles: [preflight, monitoring]
+- import_playbook: verify.yml

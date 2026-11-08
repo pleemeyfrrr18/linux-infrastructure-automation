@@ -1,0 +1,59 @@
+- name: Validate Grafana secret
+  ansible.builtin.assert:
+    that:
+      - grafana_admin_password is defined
+      - grafana_admin_password | length >= 20
+      - "'CHANGE_ME' not in grafana_admin_password"
+      - grafana_admin_password is match('^[A-Za-z0-9_-]+$')
+    fail_msg: Set a unique 20+ character alphanumeric Grafana password in vaulted secrets.yml.
+  no_log: true
+- name: Create monitoring deployment directories
+  ansible.builtin.file:
+    path: '{{ project_root }}/{{ item }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: [docker, monitoring]
+- name: Copy monitoring Compose project
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/../../docker/monitoring.compose.yaml'
+    dest: '{{ project_root }}/docker/monitoring.compose.yaml'
+    mode: '0644'
+- name: Copy alert rules
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/../../monitoring/alerts.yml'
+    dest: '{{ project_root }}/monitoring/alerts.yml'
+    mode: '0644'
+  notify: Restart monitoring
+- name: Copy Grafana provisioning and dashboard
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/../../monitoring/grafana/'
+    dest: '{{ project_root }}/monitoring/grafana/'
+    mode: '0755'
+    directory_mode: '0755'
+  notify: Restart monitoring
+- name: Render Prometheus private scrape targets
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: '{{ project_root }}/monitoring/prometheus.yml'
+    mode: '0644'
+  notify: Restart monitoring
+- name: Write restricted Grafana environment
+  ansible.builtin.copy:
+    dest: '{{ project_root }}/docker/.env'
+    content: |
+      GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password }}
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+- name: Apply monitoring configuration changes
+  ansible.builtin.meta: flush_handlers
+- name: Ensure monitoring stack is running
+  community.docker.docker_compose_v2:
+    project_src: '{{ project_root }}/docker'
+    files: [monitoring.compose.yaml]
+    state: present
+    pull: missing
+  no_log: true

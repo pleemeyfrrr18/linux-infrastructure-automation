@@ -1,0 +1,8 @@
+- name: Restart monitoring
+  community.docker.docker_compose_v2:
+    project_src: '{{ project_root }}/docker'
+    files: [monitoring.compose.yaml]
+    state: present
+    recreate: always
+    pull: missing
+  no_log: true

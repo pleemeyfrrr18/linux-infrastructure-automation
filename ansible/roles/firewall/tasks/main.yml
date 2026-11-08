@@ -1,0 +1,52 @@
+- name: Require explicit firewall approval and source networks
+  ansible.builtin.assert:
+    that:
+      - firewall_approved | bool
+      - admin_cidr is defined
+      - lab_cidr is defined
+      - "'CHANGE_ME' not in admin_cidr"
+      - "'CHANGE_ME' not in lab_cidr"
+      - admin_cidr != '0.0.0.0/0'
+      - lab_cidr != '0.0.0.0/0'
+    fail_msg: Review source networks and explicitly pass -e firewall_approved=true. Keep VM console open.
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+- name: Allow administrative SSH before enabling firewall
+  community.general.ufw:
+    rule: allow
+    from_ip: '{{ admin_cidr }}'
+    port: '{{ ssh_port | string }}'
+    proto: tcp
+- name: Allow monitoring server to scrape host metrics
+  community.general.ufw:
+    rule: allow
+    from_ip: "{{ hostvars[groups['monitoring_servers'][0]].private_ip }}"
+    port: '9100'
+    proto: tcp
+- name: Allow private clients to access application proxy
+  community.general.ufw:
+    rule: allow
+    from_ip: '{{ lab_cidr }}'
+    port: '8080'
+    proto: tcp
+  when: inventory_hostname in groups['app_servers']
+- name: Allow control-node application verification
+  community.general.ufw:
+    rule: allow
+    from_ip: '{{ admin_cidr }}'
+    port: '8080'
+    proto: tcp
+  when: inventory_hostname in groups['app_servers']
+- name: Default deny incoming traffic
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+- name: Default allow outgoing traffic
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+- name: Enable firewall after allow rules exist
+  community.general.ufw:
+    state: enabled

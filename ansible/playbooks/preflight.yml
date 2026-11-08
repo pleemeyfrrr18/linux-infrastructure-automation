@@ -1,0 +1,5 @@
+# Read-only remote readiness check; no sudo, packages or deployment.
+- name: Inspect VM readiness without privilege escalation
+  hosts: app_servers:monitoring_servers
+  become: false
+  roles: [preflight]

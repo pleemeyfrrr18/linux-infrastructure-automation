@@ -1,0 +1,17 @@
+# Synthetic local facts only. Does not gather facts from or connect to any VM.
+- name: Exercise preflight with synthetic Ubuntu 26.04.1 facts locally
+  hosts: app_servers:monitoring_servers
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    ansible_user: ci_fixture
+    private_ip: '{{ ansible_host }}'
+    ansible_facts:
+      distribution: Ubuntu
+      distribution_version: 26.04.1
+      distribution_release: resolute
+      architecture: x86_64
+      all_ipv4_addresses: ['{{ ansible_host }}']
+  roles:
+    - preflight

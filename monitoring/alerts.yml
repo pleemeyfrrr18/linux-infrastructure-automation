@@ -1,0 +1,24 @@
+groups:
+  - name: infrastructure
+    rules:
+      - alert: TargetUnavailable
+        expr: up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: 'Target {{ $labels.job }}/{{ $labels.instance }} is unavailable'
+      - alert: HighCPUUsage
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 85
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'CPU usage above 85% on {{ $labels.instance }}'}
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 85
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'Memory usage above 85% on {{ $labels.instance }}'}
+      - alert: LowDiskSpace
+        expr: 100 * node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint="/"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint="/"} < 15
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'Root filesystem below 15% available on {{ $labels.instance }}'}

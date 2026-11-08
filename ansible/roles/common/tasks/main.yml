@@ -1,0 +1,23 @@
+- name: Disable installer-only APT sources before updating package indexes
+  ansible.builtin.import_tasks: apt_sources.yml
+
+- name: Install basic tools and host metrics exporter
+  ansible.builtin.apt:
+    name: [ca-certificates, curl, python3, python3-apt, prometheus-node-exporter]
+    state: present
+    update_cache: true
+    cache_valid_time: "{{ 0 if common_cdrom_source.changed | default(false) else 3600 }}"
+- name: Bind Node Exporter only to private interface
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-node-exporter
+    content: |
+      ARGS="--web.listen-address={{ private_ip }}:9100"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart node exporter
+- name: Enable host metrics exporter
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
