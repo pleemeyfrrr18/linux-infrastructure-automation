@@ -9,15 +9,22 @@ The project operator confirms these results in the finalization request:
 | Result | Evidence available here |
 |---|---|
 | app01 Docker, Python application and Nginx work | Operator confirmation |
-| mon01 Prometheus and Grafana deployed successfully | Operator confirmation |
+| mon01 Prometheus and Grafana deployed successfully | Operator confirmation; Grafana metrics and healthy Prometheus target screenshots |
 | Ansible deployment completed on both VMs | Operator confirmation |
 | Application smoke test passed | Operator confirmation |
-| Stopping/restarting app01 Node Exporter demonstrated alert detection and service recovery | Operator confirmation; see node-exporter-recovery.md |
+| Stopping/restarting app01 Node Exporter demonstrated alert detection and service recovery | Operator confirmation plus FIRING/inactive alert captures; see node-exporter-recovery.md |
 
-No deployment transcripts, screenshot images, exact alert payloads, execution
-timestamps or measured recovery duration were found in the repository. The
-confirmation supports these results without supplying those additional details.
-Publication review did not connect to either VM or rerun remote checks.
+## Screenshot evidence added after publication review
+
+The operator supplied four original images on 2026-11-08, now available in the
+[screenshot gallery](screenshots/README.md). They show the node/app01 alert FIRING,
+the subsequent inactive alert state, the populated Grafana dashboard and all four
+Prometheus targets UP. The files were copied unchanged and visually reviewed
+for exposed credentials. This adds visual support to the operator's report.
+
+No deployment transcript, exact incident timeline or measured recovery duration
+is included. A healthy-target screenshot captures a moment, not continuous
+availability. Adding evidence did not involve connecting to or changing a VM.
 
 ## Executed local checks during finalization
 
@@ -63,8 +70,9 @@ file are ignored, as is `.venv`. These files were not modified.
 
 Private-key/token/password detection is heuristic. A passing scan does not prove
 the absence of every possible secret. Manually inspect staged content before
-committing or pushing; use docs/publication.md. Screenshots require separate
-visual review when added. Currently docs/screenshots contains only its index.
+committing or pushing; use docs/publication.md. The four supplied screenshots were visually reviewed before inclusion. They show
+private lab addresses and host labels, with no visible passwords, private keys or
+tokens. The gallery documents their scope and limitations.
 
 ## Not executed during finalization
 
@@ -84,5 +92,6 @@ GitHub run. Its existence is not evidence of a green run.
 
 Use node-exporter-recovery.md for the confirmed experiment, failure-testing.md
 for planned tests, incident-report.md for future measured records, and the
-screenshots index for actual image evidence. No further VM changes or publication
-are authorized by this repository review.
+screenshots index for actual image evidence. The later screenshot request
+authorizes committing and pushing these evidence updates; it does not authorize
+further VM changes.

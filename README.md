@@ -7,8 +7,9 @@ project focuses on Linux administration, automation, observability and recovery.
 
 **Lab status:** the operator confirms successful Ansible deployment on both VMs,
 a passing application smoke test, and alert detection/recovery when Node Exporter
-on app01 was stopped and restarted. These are operator-reported results; saved
-logs, screenshots and measured recovery times are not currently included.
+on app01 was stopped and restarted. [Four original screenshots](docs/screenshots/README.md)
+now show the firing/resolved alert, Grafana metrics and four healthy Prometheus
+targets. Deployment logs and measured recovery times are not included.
 See [validation and evidence](docs/validation.md) for the exact boundary of each claim.
 
 ## Architecture
@@ -58,7 +59,7 @@ monitoring/              scrape configuration, alert rules/tests, Grafana provis
 scripts/                 smoke, target, idempotency, recovery and publication checks
 tests/                   secret-guard regression tests
 docs/                    deployment, troubleshooting, recovery and evidence
-docs/screenshots/        real screenshots only; none included yet
+docs/screenshots/        four original alert/recovery/dashboard/target screenshots
 requirements-control.txt pinned control-node Python dependencies
 ```
 
@@ -138,12 +139,26 @@ python3 scripts/check-targets.py
 
 These commands contact the real lab; none were rerun during publication review.
 
+## Monitoring evidence
+
+![Grafana infrastructure dashboard](docs/screenshots/03-grafana-dashboard.png)
+
+| Capture | Evidence |
+|---|---|
+| [Firing alert](docs/screenshots/01-alert-firing.png) | `TargetUnavailable`, `node/app01`, FIRING, value 0 |
+| [Recovery](docs/screenshots/02-alert-recovered.png) | TargetUnavailable inactive after the reported restart |
+| [Grafana](docs/screenshots/03-grafana-dashboard.png) | Provisioned infrastructure dashboard populated with metrics |
+| [Prometheus](docs/screenshots/04-prometheus-targets.png) | Application, both host exporters and Prometheus all UP |
+
+See the [full gallery and evidence limits](docs/screenshots/README.md).
+
 ## Reliability and troubleshooting
 
 The confirmed Node Exporter stop/start experiment demonstrated alert detection
 and service recovery. The [recovery record](docs/node-exporter-recovery.md)
-separates that report from a future repeatable procedure. No timestamps, exact
-alert transitions or recovery duration are invented.
+links the captured FIRING and subsequent inactive states and separates these
+observations from a future repeatable procedure. Exact recovery duration remains
+unmeasured.
 
 [Additional experiments](docs/failure-testing.md) cover application crashes,
 VM shutdown, bad configuration, clean rebuilds and idempotency. They remain
@@ -179,8 +194,8 @@ for script in scripts/*.sh; do bash -n "$script"; done
 
 The [validation record](docs/validation.md) reports executed local checks and
 checks blocked by missing Docker integration. No CI badge claims a passing run
-before publication. [Screenshot index](docs/screenshots/README.md) links only
-images actually present; none currently exist.
+without checking the actual workflow result. The [screenshot gallery](docs/screenshots/README.md)
+contains four original captures with explanations of what each demonstrates.
 
 ## Security and limitations
 
